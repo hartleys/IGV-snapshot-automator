@@ -8,12 +8,15 @@
 #+ SYNTAXTEXT="igvSnap [options] bamfile.bam"$'\n'
 #+ PARAMS="--help: displays syntax and help info."$'\n'
 #++PARAMS="--man: synonym for --help."$'\n'
-#++PARAMS="-r/--bedfile <filename.bed>: The bedfile to use, listing the desired regions."$'\n'
+#++PARAMS="--region chr1:10000-20000: Explicitly list a region to plot. Note, the region can optionally be preceded with the region ID using the format: regionID:chr1:1000-2000"$'\n'
+#++PARAMS="--bedfile <filename.bed>: The bedfile to use, listing the desired regions. This can be combined with the --region parameter."$'\n'
 #++PARAMS="-o/--outdir <output/dir/>: The directory to put output images. Defaults to the current directory"$'\n'
-#++PARAMS="-b/--bamfile <bamfile.bam>: Additional bam files to include."$'\n'
+#++PARAMS="--bamfile <bamfile.bam>: Additional bam files to include."$'\n'
 #++PARAMS="--suffix <fileSuffix>: A suffix to append to each output image filename."$'\n'
 #++PARAMS="--ht <ht>: The maxHeight param for IGV."$'\n'
 #++PARAMS="--fmt png/svg/jpg: The image file format you want. Can be png, svg, or jpg. Default: svg."$'\n'
+#++PARAMS="--python path/to/python: The path to the python executable you want to use. Defaults to just 'python'. This is useful if you have both python 2.7 and python 3+ installed."$'\n'
+
 
 #+ VERSION="0.1.0"
 
@@ -33,7 +36,10 @@ BAMFILE=${last}
 SUFFIX="";
 HT=1200;
 FMT="svg";
-
+REGIONS="";
+PYTHON="python";
+NOSNAP="0";
+ONLYSNAP="0";
 while [ "$#" -gt 0 ];
 do
       if [ "$1" == "-r" -o "$1" == "--bedfile" ];
@@ -62,8 +68,27 @@ do
         shift;
         FMT=$1;
       fi
+      if [ "$1" == "--region" ]; then
+        shift;
+        REGIONS="$REGIONS $1";
+      fi
+      if [ "$1" == "--python" ]; then
+        shift;
+        PYTHON="$1";
+      fi
+      if [ "$1" == "--nosnap" ]; then
+        NOSNAP="1"
+      fi
+      if [ "$1" == "--onlysnap" ]; then
+        ONLYSNAP="1"
+      fi
       shift;
 done
+
+echo "    REGIONS=\"$REGIONS\""
+
+REGIONS=$( echo $REGIONS | sed 's/^ //g' )
+EXTRAOPTS=$( echo $EXTRAOPTS | sed 's/^ //g' )
 
 echo "Params set:"
 echo "    BEDFILE=$BEDFILE"
@@ -72,8 +97,10 @@ echo "    BAMFILES=\"$BAMFILE\""
 echo "    SUFFIX=$SUFFIX"
 echo "    HT=$HT"
 echo "    FMT=$FMT"
+echo "    PYTHON=$PYTHON"
+echo "    REGIONS=\"$REGIONS\""
 echo "    IGVSnapInstallDir=${CURRENT_SCRIPT_DIR}";
-
+echo "    EXTRAOPTS=$EXTRAOPTS";
 
 if [ "$BAMFILE" == "youMustSetaBamfileWithTheBamParameter.bam" ]; then
   echo "Error: parameter --bamfile MUST be set!";
@@ -87,47 +114,77 @@ fi
 
 rm $OUTDIR
 mkdir -p $OUTDIR
-if [ -f "$OUTDIR/IGV_snapshots.bat" ]; then
-   IX=1
-   FN="$OUTDIR/IGV_snapshots.$IX.bat"
-   while [ -f "$FN" ]; do
-     IX=$(( $IX + 1 ));
-     FN="$OUTDIR/IGV_snapshots.$IX.bat"
-   done
-   mv "$OUTDIR/IGV_snapshots.bat" "$OUTDIR/IGV_snapshots.$IX.bat"
+
+if [ "$ONLYSNAP" == "0" ]; then
+	if [ -f "$OUTDIR/IGV_snapshots.bat" ]; then
+	   IX=1
+	   FN="$OUTDIR/IGV_snapshots.$IX.bat"
+	   while [ -f "$FN" ]; do
+	     IX=$(( $IX + 1 ));
+	     FN="$OUTDIR/IGV_snapshots.$IX.bat"
+	   done
+	   mv "$OUTDIR/IGV_snapshots.bat" "$OUTDIR/IGV_snapshots.$IX.bat"
+	fi
 fi
 
 echo "Starting BATCHFILE generation! [$(date)]"
 
-python3 ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
-   -g "hg19" \
-   -o "$OUTDIR" \
-   -suffix "$SUFFIX" \
+CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
+   -g \"hg19\" \
+   -o \"$OUTDIR\" \
+   -suffix \"$SUFFIX\" \
+   -r \"$BEDFILE\" \
+   -regions \"$REGIONS\" \
+   -ht \"$HT\" \
+   -bin \"${CURRENT_SCRIPT_DIR}/IGV_2.3.81/igv.jar\" \
+   -imgfmt \"$FMT\" \
    -nosnap \
-   -r "$BEDFILE" \
-   -ht $HT \
-   -bin "${CURRENT_SCRIPT_DIR}/IGV_2.3.81/igv.jar" \
-   -imgfmt "$FMT" \
-   "$BAMFILE"
+   $BAMFILE"
 
-echo "DONE MAKING BATCHFILE! [$(date)]"
+if [ "$ONLYSNAP" == "0" ]; then
 
+  echo "evaluating: \"${CMD}\""
+  eval $CMD
+  
+fi
+
+CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
+   -g \"hg19\" \
+   -o \"$OUTDIR\" \
+   -suffix \"$SUFFIX\" \
+   -r \"$BEDFILE\" \
+   -regions \"$REGIONS\" \
+   -ht \"$HT\" \
+   -bin \"${CURRENT_SCRIPT_DIR}/IGV_2.3.81/igv.jar\" \
+   -imgfmt \"$FMT\" \
+   -onlysnap "$OUTDIR/IGV_snapshots.bat" \
+   $BAMFILE"
+
+if [ "$NOSNAP" == "0" ]; then
+
+  echo "evaluating: \"${CMD}\""
+  eval $CMD
+
+fi
+
+#   -nosnap \
+#echo "DONE MAKING BATCHFILE! [$(date)]"
 #echo "editing batchfile... [$(date)]"
 #mv $OUTDIR/IGV_snapshots.bat $OUTDIR/IGV_snapshots.png.bat
 #cat $OUTDIR/IGV_snapshots.png.bat | sed 's/.png$/.svg/g' > $OUTDIR/IGV_snapshots.bat
 #echo "batchfile editing complete"
-
-echo "STARTING IGV RUN... [$(date)]"
-python3 ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
-   -g "hg19" \
-   -o "$OUTDIR" \
-   -suffix "$SUFFIX" \
-   -onlysnap "$OUTDIR/IGV_snapshots.bat" \
-   -r "$BEDFILE" \
-   -ht $HT \
-   -bin "${CURRENT_SCRIPT_DIR}/IGV_2.3.81/igv.jar" \
-   -imgfmt "$FMT" \
-   "$BAMFILE"
+#
+#echo "STARTING IGV RUN... [$(date)]"
+#${PYTHON} ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
+#   -g "hg19" \
+#   -o "$OUTDIR" \
+#   -suffix "$SUFFIX" \
+#   -onlysnap "$OUTDIR/IGV_snapshots.bat" \
+#   -r "$BEDFILE" \
+#   -ht $HT \
+#   -bin "${CURRENT_SCRIPT_DIR}/IGV_2.3.81/igv.jar" \
+#   -imgfmt "$FMT" \
+#   "$BAMFILE"
 
 echo "IGV run complete [$(date)]"
 
