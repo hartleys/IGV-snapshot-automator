@@ -97,7 +97,7 @@ def make_IGV_chrom_loc(region):
     chrom, start, stop = region[0:3]
     return('{}:{}-{}'.format(chrom, start, stop))
 
-def make_snapshot_filename(region, height, suffix = None):
+def make_snapshot_filename(region, height, suffix = None, imgfmt="png"):
     '''
     formats a filename for the IGV snapshot
     region is a tuple with at least 3 entries; if a 4th entry exists, use it as the filename
@@ -108,9 +108,9 @@ def make_snapshot_filename(region, height, suffix = None):
     elif len(region) == 3:
         chrom, start, stop = region
         if suffix == None:
-            return('{}_{}_{}_h{}.png'.format(chrom, start, stop, height))
+            return('{}_{}_{}_h{}.{}'.format(chrom, start, stop, height, imgfmt))
         elif suffix != None:
-            return('{}_{}_{}_h{}{}.png'.format(chrom, start, stop, height, str(suffix)))
+            return('{}_{}_{}_h{}{}.{}'.format(chrom, start, stop, height, str(suffix), imgfmt))
 
 def mkdir_p(path, return_path=False):
     '''
@@ -195,7 +195,7 @@ def start_batchscript(input_files, IGV_batchscript_file, IGV_snapshot_dir, genom
     append_string("maxPanelHeight " + image_height, IGV_batchscript_file)
 
 
-def write_batchscript_regions(region_file, IGV_batchscript_file, image_height, suffix, nf4_mode, group_by_strand=False):
+def write_batchscript_regions(region_file, IGV_batchscript_file, image_height, suffix, nf4_mode, group_by_strand=False,imgfmt="png"):
     '''
     Write the batchscript regions
     '''
@@ -210,7 +210,7 @@ def write_batchscript_regions(region_file, IGV_batchscript_file, image_height, s
         # convert region into IGV script format
         IGV_loc = make_IGV_chrom_loc(region)
         # create filename for output snapshot image_height
-        snapshot_filename = make_snapshot_filename(region, image_height, suffix = suffix)
+        snapshot_filename = make_snapshot_filename(region, image_height, suffix = suffix,imgfmt=imgfmt)
         # write to the batchscript
         append_string("goto " + IGV_loc, IGV_batchscript_file)
         # if user specifies, group reads by read strand
@@ -219,12 +219,13 @@ def write_batchscript_regions(region_file, IGV_batchscript_file, image_height, s
         append_string("snapshot " + snapshot_filename, IGV_batchscript_file)
 
 
-def write_IGV_script(input_files, region_file, IGV_batchscript_file, IGV_snapshot_dir, genome_version, image_height, suffix = None, nf4_mode = False, group_by_strand=False):
+def write_IGV_script(input_files, region_file, IGV_batchscript_file, IGV_snapshot_dir, genome_version, 
+                     image_height, suffix = None, nf4_mode = False, group_by_strand=False, imgfmt="png"):
     '''
     write out a batchscrpt for IGV
     '''
     start_batchscript(input_files, IGV_batchscript_file, IGV_snapshot_dir, genome_version, image_height)
-    write_batchscript_regions(region_file, IGV_batchscript_file, image_height, suffix, nf4_mode, group_by_strand=group_by_strand)
+    write_batchscript_regions(region_file, IGV_batchscript_file, image_height, suffix, nf4_mode, group_by_strand=group_by_strand,imgfmt=imgfmt)
     append_string("exit", IGV_batchscript_file)
 
 def run_IGV_script(igv_script, igv_jar, memMB):
@@ -254,7 +255,8 @@ def main(input_files, region_file = 'regions.bed', genome = 'hg19',
          image_height = '500', outdir = 'IGV_Snapshots',
          igv_jar_bin = "bin/IGV_2.3.81/igv.jar", igv_mem = "4000",
          no_snap = False, suffix = None, nf4_mode = False, onlysnap = False,
-         group_by_strand=False):
+         group_by_strand=False,
+         imgfmt = "png"):
     '''
     Main control function for the script
     '''
@@ -297,7 +299,7 @@ def main(input_files, region_file = 'regions.bed', genome = 'hg19',
                      IGV_batchscript_file = batchscript_file,
                      IGV_snapshot_dir = outdir, genome_version = genome,
                      image_height = image_height, suffix = suffix,
-                     nf4_mode = nf4_mode, group_by_strand=group_by_strand)
+                     nf4_mode = nf4_mode, group_by_strand=group_by_strand, imgfmt=imgfmt)
 
     # make sure the batch script file exists
     file_exists(batchscript_file, kill = True)
@@ -310,6 +312,12 @@ def run():
     '''
     Parse script args to run the script
     '''
+    # ~~~~ Setup ~~~~~~ #
+    print("initializing...");
+    installBaseDir=os.path.dirname(os.path.realpath(__file__));
+    print("installBaseDir="+installBaseDir)
+    
+    
     # ~~~~ GET SCRIPT ARGS ~~~~~~ #
     parser = argparse.ArgumentParser(description='IGV snapshot automator')
     # required positional args
@@ -322,12 +330,14 @@ def run():
     parser.add_argument("-g", default = 'hg19', type = str, dest = 'genome', metavar = 'genome', help="Name of the reference genome, Defaults to hg19")
     parser.add_argument("-ht", default = '500', type = str, dest = 'image_height', metavar = 'image height', help="Height for the IGV tracks")
     parser.add_argument("-o", default = 'IGV_Snapshots', type = str, dest = 'outdir', metavar = 'output directory', help="Output directory for snapshots")
-    parser.add_argument("-bin", default = "bin/IGV_2.3.81/igv.jar", type = str, dest = 'igv_jar_bin', metavar = 'IGV bin path', help="Path to the IGV jar binary to run")
+    parser.add_argument("-bin", default = installBaseDir+"/bin/IGV_2.3.81/igv.jar", type = str, dest = 'igv_jar_bin', metavar = 'IGV bin path', help="Path to the IGV jar binary to run")
     parser.add_argument("-mem", default = "4000", type = str, dest = 'igv_mem', metavar = 'IGV memory (MB)', help="Amount of memory to allocate to IGV, in Megabytes (MB)")
     parser.add_argument("-nosnap", default = False, action='store_true', dest = 'no_snap', help="Don't make snapshots, only write batchscript and exit")
     parser.add_argument("-suffix", default = None, dest = 'suffix', help="Filename suffix to place before '.png' in the snapshots")
     parser.add_argument("-nf4", default = False, action='store_true', dest = 'nf4_mode', help="'Name field 4' mode; uses the value in the fourth field of the regions file as the filename for each region snapshot")
     parser.add_argument("-onlysnap", default = False, dest = 'onlysnap', help="Path to batchscript file to run in IGV. Performs no error checking or other input evaluation, only runs IGV on the batchscript and exits.")
+    parser.add_argument("-imgfmt", default = "png", dest = 'imgfmt', help="The image format file extension. png, jpg, and svg are allowed.")
+
     parser.add_argument("-s", "-group_by_strand", default=False,
                         dest="group_by_strand", action='store_true',
                         help="Group reads by forward/reverse strand.")
@@ -346,12 +356,14 @@ def run():
     nf4_mode = args.nf4_mode
     onlysnap = args.onlysnap
     group_by_strand = args.group_by_strand
+    imgfmt = args.imgfmt;
 
     main(input_files = input_files, region_file = region_file, genome = genome,
          image_height = image_height, outdir = outdir, igv_jar_bin = igv_jar_bin,
          igv_mem = igv_mem, no_snap = no_snap, suffix = suffix,
          nf4_mode = nf4_mode, onlysnap = onlysnap,
-         group_by_strand=group_by_strand)
+         group_by_strand=group_by_strand,
+         imgfmt=imgfmt)
 
 
 

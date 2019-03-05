@@ -1,0 +1,134 @@
+#!/bin/bash
+
+#estat | tail -n+2 | awk '{ if ( $5 == "qw" ) print $1 }' | tr '\n' '|'
+
+#+SHORTDESC="Simple wrapper for IGV-snapshot-automator tool"
+#+ HELPTEXT="..."$'\n'
+#++HELPTEXT="..."$'\n'
+#+ SYNTAXTEXT="igvSnap [options] bamfile.bam"$'\n'
+#+ PARAMS="--help: displays syntax and help info."$'\n'
+#++PARAMS="--man: synonym for --help."$'\n'
+#++PARAMS="-r/--bedfile <filename.bed>: The bedfile to use, listing the desired regions."$'\n'
+#++PARAMS="-o/--outdir <output/dir/>: The directory to put output images. Defaults to the current directory"$'\n'
+#++PARAMS="-b/--bamfile <bamfile.bam>: Additional bam files to include."$'\n'
+#++PARAMS="--suffix <fileSuffix>: A suffix to append to each output image filename."$'\n'
+#++PARAMS="--ht <ht>: The maxHeight param for IGV."$'\n'
+#++PARAMS="--fmt png/svg/jpg: The image file format you want. Can be png, svg, or jpg. Default: svg."$'\n'
+
+#+ VERSION="0.1.0"
+
+if [ "$1" == "--help" -o "$1" == "--man" ]; then
+  ${SWH_HELPER_SCRIPTS}/manForScript ${BASH_SOURCE[0]}
+  exit 1
+fi
+
+CURRENT_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+for last; do true; done
+echo "BAMFILE=$last"
+
+BEDFILE=""
+OUTDIR="./";
+BAMFILE=${last}
+SUFFIX="";
+HT=1200;
+FMT="svg";
+
+while [ "$#" -gt 0 ];
+do
+      if [ "$1" == "-r" -o "$1" == "--bedfile" ];
+      then
+        shift;
+        BEDFILE=$1;
+      fi
+      if [ "$1" == "-b" -o "$1" == "--bamfile" ];
+      then
+        shift;
+        BAMFILE="$BAMFILE $1";
+      fi
+      if [ "$1" == "--SUFFIX" ]; then
+        shift;
+        SUFFIX=$1
+      fi
+      if [ "$1" == "--ht" ]; then
+        shift;
+        HT=$1
+      fi
+      if [ "$1" == "-o" -o "$1" == "--outdir" ]; then
+        shift;
+        OUTDIR=$1
+      fi
+      if [ "$1" == "--fmt" ]; then
+        shift;
+        FMT=$1;
+      fi
+      shift;
+done
+
+echo "Params set:"
+echo "    BEDFILE=$BEDFILE"
+echo "    OUTDIR=$OUTDIR"
+echo "    BAMFILES=\"$BAMFILE\""
+echo "    SUFFIX=$SUFFIX"
+echo "    HT=$HT"
+echo "    FMT=$FMT"
+echo "    IGVSnapInstallDir=${CURRENT_SCRIPT_DIR}";
+
+
+if [ "$BAMFILE" == "youMustSetaBamfileWithTheBamParameter.bam" ]; then
+  echo "Error: parameter --bamfile MUST be set!";
+  exit 1 
+fi
+if [ "$BEDFILE" == "" ]; then
+  echo "Error: parameter --bedfile MUST be set!";
+  exit 1 
+fi
+
+
+rm $OUTDIR
+mkdir -p $OUTDIR
+if [ -f "$OUTDIR/IGV_snapshots.bat" ]; then
+   IX=1
+   FN="$OUTDIR/IGV_snapshots.$IX.bat"
+   while [ -f "$FN" ]; do
+     IX=$(( $IX + 1 ));
+     FN="$OUTDIR/IGV_snapshots.$IX.bat"
+   done
+   mv "$OUTDIR/IGV_snapshots.bat" "$OUTDIR/IGV_snapshots.$IX.bat"
+fi
+
+echo "Starting BATCHFILE generation! [$(date)]"
+
+python3 ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
+   -g "hg19" \
+   -o "$OUTDIR" \
+   -suffix "$SUFFIX" \
+   -nosnap \
+   -r "$BEDFILE" \
+   -ht $HT \
+   -bin "${CURRENT_SCRIPT_DIR}/IGV_2.3.81/igv.jar" \
+   -imgfmt "$FMT" \
+   "$BAMFILE"
+
+echo "DONE MAKING BATCHFILE! [$(date)]"
+
+#echo "editing batchfile... [$(date)]"
+#mv $OUTDIR/IGV_snapshots.bat $OUTDIR/IGV_snapshots.png.bat
+#cat $OUTDIR/IGV_snapshots.png.bat | sed 's/.png$/.svg/g' > $OUTDIR/IGV_snapshots.bat
+#echo "batchfile editing complete"
+
+echo "STARTING IGV RUN... [$(date)]"
+python3 ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
+   -g "hg19" \
+   -o "$OUTDIR" \
+   -suffix "$SUFFIX" \
+   -onlysnap "$OUTDIR/IGV_snapshots.bat" \
+   -r "$BEDFILE" \
+   -ht $HT \
+   -bin "${CURRENT_SCRIPT_DIR}/IGV_2.3.81/igv.jar" \
+   -imgfmt "$FMT" \
+   "$BAMFILE"
+
+echo "IGV run complete [$(date)]"
+
+
