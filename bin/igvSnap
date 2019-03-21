@@ -215,7 +215,7 @@ then
 fi
 
 
-CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
+CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/make_IGV_snapshots.py \
    --genome \"hg19\" \
    --outDir \"$OUTDIR\" \
    --suffix \"$SUFFIX\" \
@@ -241,7 +241,7 @@ if [ "$ONLYSNAP" == "0" ]; then
   
 fi
 
-CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
+CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/make_IGV_snapshots.py \
    --onlySnap "$OUTDIR/${OUTPREFIX}IGV_snapshots.bat" \
    --igvJar \"$IGVJAR\" \
    $OUTPREFIX \
