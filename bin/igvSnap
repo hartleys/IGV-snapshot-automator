@@ -131,7 +131,7 @@ if [ "${IGVJAR}" == "" ]; then
     IGVJAR=$( findHeadlessIgv );
     if [ ! -f "$IGVJAR" ]; then
       echo "ERROR: IGVJAR not found! Autodetect FAILED!";
-      stop 10
+      exit 10
     fi
   else
     echo "Found igv jarfile: \"${IGVJAR}\"";
@@ -141,7 +141,7 @@ else
   echo "warning: if you use a standard version of IGV (and not the special headless version), then many features will not work!";
   if [ ! -f "$IGVJAR" ]; then
      echo "ERROR: IGV JARFILE NOT FOUND: \"${IGVJAR}\""
-     stop 10;
+     exit 10;
   fi
 fi
 
@@ -191,11 +191,18 @@ fi
 
 echo "Starting BATCHFILE generation! [$(date)]"
 
-CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/make_IGV_snapshots.py \
-   --g \"hg19\" \
+BEDFILECMD=""
+if [ "$BEDFILE" != "" ]
+then
+  BEDFILECMD="--bedFile \"$BEDFILE\""
+fi
+
+
+CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
+   --genome \"hg19\" \
    --outDir \"$OUTDIR\" \
    --suffix \"$SUFFIX\" \
-   --bedFile \"$BEDFILE\" \
+   ${BEDFILECMD} \
    --regions \"$REGIONS\" \
    --ht \"$HT\" \
    --wd \"$WD\" \
@@ -214,10 +221,9 @@ if [ "$ONLYSNAP" == "0" ]; then
   
 fi
 
-CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/make_IGV_snapshots.py \
-   --g \"hg19\" \
-   --igvJar \"$IGVJAR\" \
+CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
    --onlySnap "$OUTDIR/${OUTPREFIX}IGV_snapshots.bat" \
+   --igvJar \"$IGVJAR\" \
    $OUTPREFIX \
    $BAMFILE"
 

@@ -63,10 +63,17 @@ def subprocess_cmd(command):
     '''
     Runs a terminal command with stdout piping enabled
     '''
-    import subprocess as sp
-    process = sp.Popen(command,stdout=sp.PIPE, shell=True)
-    proc_stdout = process.communicate()[0].strip()
-    print(proc_stdout)
+    import subprocess
+    process = subprocess.Popen(command,stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+    for line in process.stdout:
+       print(">     "+str(line));
+    
+    #for line in iter(process.stdout.readline, ''):
+    #    sys.stdout.write(line)
+    #for c in iter(lambda: process.stdout.read(1), b:'');
+    #   print(">     "+c);
+    #proc_stdout = process.communicate()[0].strip()
+    #print(proc_stdout)
 
 def make_chrom_region_list_from_regions(regions):
     '''
@@ -249,8 +256,6 @@ def write_batchscript_regions(region_file, IGV_batchscript_file, image_height, s
     if regions:
        print("Parsing regions: "+str(regions)+"\n");
        region_list = make_chrom_region_list_from_regions(regions);
-       if roi:
-          roi = roi.split(" ");
        ii = 0;
        # ~~~~ WRITE BATCHSCRIPT CHROM LOC INFO ~~~~~~ #
        # iterate over all the regions to take snapshots of
