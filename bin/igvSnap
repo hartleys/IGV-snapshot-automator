@@ -9,12 +9,14 @@
 #+ PARAMS="--help: displays syntax and help info."$'\n'
 #++PARAMS="--man: synonym for --help."$'\n'
 #++PARAMS="--region chr1:10000-20000: Explicitly list a region to plot. Note, the region can optionally be preceded with the region ID using the format: regionID:chr1:1000-2000"$'\n'
-#++PARAMS="--bedfile <filename.bed>: The bedfile to use, listing the desired regions. This can be combined with the --region parameter."$'\n'
-#++PARAMS="-o/--outdir <output/dir/>: The directory to put output images. Defaults to the current directory"$'\n'
-#++PARAMS="--bamfile <bamfile.bam>: Additional bam files to include."$'\n'
-#++PARAMS="--suffix <fileSuffix>: A suffix to append to each output image filename."$'\n'
+#++PARAMS="--bedFile <filename.bed>: The bedfile to use, listing the desired regions. This can be combined with the --region parameter."$'\n'
+#++PARAMS="--outDir <output/dir/>: The directory to put output images. Defaults to the current directory"$'\n'
+#++PARAMS="--outPrefix <fileSuffix>: A suffix to append to each output image filename."$'\n'
+#++PARAMS="--outSuffix <fileSuffix>: A suffix to append to each output image filename."$'\n'
+#++PARAMS="--bamFile <bamfile.bam>: Additional bam files to include."$'\n'
 #++PARAMS="--ht <ht>: The maxHeight param for IGV."$'\n'
-#++PARAMS="--fmt png/svg/jpg: The image file format you want. Can be png, svg, or jpg. Default: svg."$'\n'
+#++PARAMS="--wd <wd>: The width of the output image(s), in pixels. (default 1920)"$'\n'
+#++PARAMS="--fmt png/svg/jpg: The image file format you want. Can be png, svg, or jpg. Default: png."$'\n'
 #++PARAMS="--python path/to/python: The path to the python executable you want to use. Defaults to just 'python'. This is useful if you have both python 2.7 and python 3+ installed."$'\n'
 
 
@@ -35,24 +37,40 @@ OUTDIR="./";
 BAMFILE=${last}
 SUFFIX="";
 HT=1200;
-FMT="svg";
+WD=1920
+FMT="png";
 REGIONS="";
 PYTHON="python";
 NOSNAP="0";
 ONLYSNAP="0";
+OUTPREFIXCMD="";
+OUTPREFIX="";
+ROI="";
+ROICMD="";
+VIEWASPAIRS="";
+
+
+
 while [ "$#" -gt 0 ];
 do
-      if [ "$1" == "-r" -o "$1" == "--bedfile" ];
+      echo "reading param: $1"
+      if [ "$1" == "--bedFile" ];
       then
         shift;
         BEDFILE=$1;
       fi
-      if [ "$1" == "-b" -o "$1" == "--bamfile" ];
+      if [ "$1" == "--wd" ];
       then
         shift;
-        BAMFILE="$BAMFILE $1";
+        WD=$1;
       fi
-      if [ "$1" == "--SUFFIX" ]; then
+      if [ "$1" == "--igvJar" ];
+      then
+        shift;
+        IGVJAR=$1;
+      fi
+
+      if [ "$1" == "--outSuffix" ]; then
         shift;
         SUFFIX=$1
       fi
@@ -60,7 +78,7 @@ do
         shift;
         HT=$1
       fi
-      if [ "$1" == "-o" -o "$1" == "--outdir" ]; then
+      if [ "$1" == "--outDir" ]; then
         shift;
         OUTDIR=$1
       fi
@@ -76,19 +94,64 @@ do
         shift;
         PYTHON="$1";
       fi
-      if [ "$1" == "--nosnap" ]; then
+      if [ "$1" == "--noSnap" ]; then
         NOSNAP="1"
       fi
-      if [ "$1" == "--onlysnap" ]; then
+      if [ "$1" == "--onlySnap" ]; then
         ONLYSNAP="1"
       fi
+      if [ "$1" == "--outPrefix" ]; then
+        shift;
+        OUTPREFIX="$1"
+        OUTPREFIXCMD="--outPrefix $1"
+      fi
+
+      if [ "$1" == "-b" -o "$1" == "--bamFile" ];
+      then
+        shift;
+        BAMFILE="$BAMFILE $1";
+      fi
+      if [ "$1" == "--roi" ]; then
+        shift;
+        ROI="$ROI $1"
+        ROICMD="$ROICMD --roi $1"
+      fi
+      if [ "$1" == "--viewAsPairs" ]; then
+        VIEWASPAIRS="--viewAsPairs";
+      fi
+      
       shift;
+      
 done
+
+if [ "${IGVJAR}" == "" ]; then
+  IGVJAR="${CURRENT_SCRIPT_DIR}/igv.jar"
+  if [ ! -f "$IGVJAR" ]; then
+    echo "WARNING: IGVJAR not found in bin directory! Attempting findHeadlessIgv...";
+    IGVJAR=$( findHeadlessIgv );
+    if [ ! -f "$IGVJAR" ]; then
+      echo "ERROR: IGVJAR not found! Autodetect FAILED!";
+      stop 10
+    fi
+  else
+    echo "Found igv jarfile: \"${IGVJAR}\"";
+  fi
+else
+  echo "using user-specified IGV: \"${IGVJAR}\""
+  echo "warning: if you use a standard version of IGV (and not the special headless version), then many features will not work!";
+  if [ ! -f "$IGVJAR" ]; then
+     echo "ERROR: IGV JARFILE NOT FOUND: \"${IGVJAR}\""
+     stop 10;
+  fi
+fi
+
 
 echo "    REGIONS=\"$REGIONS\""
 
+ROI=$( echo $ROI | sed 's/^ //g' )
 REGIONS=$( echo $REGIONS | sed 's/^ //g' )
 EXTRAOPTS=$( echo $EXTRAOPTS | sed 's/^ //g' )
+BAMFILE=$( echo $BAMFILE | sed 's/^ //g' )
 
 echo "Params set:"
 echo "    BEDFILE=$BEDFILE"
@@ -100,19 +163,18 @@ echo "    FMT=$FMT"
 echo "    PYTHON=$PYTHON"
 echo "    REGIONS=\"$REGIONS\""
 echo "    IGVSnapInstallDir=${CURRENT_SCRIPT_DIR}";
+echo "    OUTPREFIX=\"$OUTPREFIX\""
+echo "    OUTPREFIXCMD=\"$OUTPREFIXCMD\""
+echo "    ROI=\"$ROI\""
+echo "    VIEWASPAIRS=\"$VIEWASPAIRS\""
 echo "    EXTRAOPTS=$EXTRAOPTS";
+
 
 if [ "$BAMFILE" == "youMustSetaBamfileWithTheBamParameter.bam" ]; then
   echo "Error: parameter --bamfile MUST be set!";
   exit 1 
 fi
-if [ "$BEDFILE" == "" ]; then
-  echo "Error: parameter --bedfile MUST be set!";
-  exit 1 
-fi
 
-
-rm $OUTDIR
 mkdir -p $OUTDIR
 
 if [ "$ONLYSNAP" == "0" ]; then
@@ -129,16 +191,20 @@ fi
 
 echo "Starting BATCHFILE generation! [$(date)]"
 
-CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
-   -g \"hg19\" \
-   -o \"$OUTDIR\" \
-   -suffix \"$SUFFIX\" \
-   -r \"$BEDFILE\" \
-   -regions \"$REGIONS\" \
-   -ht \"$HT\" \
-   -bin \"${CURRENT_SCRIPT_DIR}/IGV_2.3.81/igv.jar\" \
-   -imgfmt \"$FMT\" \
-   -nosnap \
+CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/make_IGV_snapshots.py \
+   --g \"hg19\" \
+   --outDir \"$OUTDIR\" \
+   --suffix \"$SUFFIX\" \
+   --bedFile \"$BEDFILE\" \
+   --regions \"$REGIONS\" \
+   --ht \"$HT\" \
+   --wd \"$WD\" \
+   --igvJar \"$IGVJAR\" \
+   --imgFmt \"$FMT\" \
+   --noSnap \
+   $OUTPREFIXCMD \
+   $ROICMD \
+   $VIEWASPAIRS \
    $BAMFILE"
 
 if [ "$ONLYSNAP" == "0" ]; then
@@ -148,16 +214,11 @@ if [ "$ONLYSNAP" == "0" ]; then
   
 fi
 
-CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
-   -g \"hg19\" \
-   -o \"$OUTDIR\" \
-   -suffix \"$SUFFIX\" \
-   -r \"$BEDFILE\" \
-   -regions \"$REGIONS\" \
-   -ht \"$HT\" \
-   -bin \"${CURRENT_SCRIPT_DIR}/IGV_2.3.81/igv.jar\" \
-   -imgfmt \"$FMT\" \
-   -onlysnap "$OUTDIR/IGV_snapshots.bat" \
+CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/make_IGV_snapshots.py \
+   --g \"hg19\" \
+   --igvJar \"$IGVJAR\" \
+   --onlySnap "$OUTDIR/${OUTPREFIX}IGV_snapshots.bat" \
+   $OUTPREFIX \
    $BAMFILE"
 
 if [ "$NOSNAP" == "0" ]; then
@@ -166,25 +227,6 @@ if [ "$NOSNAP" == "0" ]; then
   eval $CMD
 
 fi
-
-#   -nosnap \
-#echo "DONE MAKING BATCHFILE! [$(date)]"
-#echo "editing batchfile... [$(date)]"
-#mv $OUTDIR/IGV_snapshots.bat $OUTDIR/IGV_snapshots.png.bat
-#cat $OUTDIR/IGV_snapshots.png.bat | sed 's/.png$/.svg/g' > $OUTDIR/IGV_snapshots.bat
-#echo "batchfile editing complete"
-#
-#echo "STARTING IGV RUN... [$(date)]"
-#${PYTHON} ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
-#   -g "hg19" \
-#   -o "$OUTDIR" \
-#   -suffix "$SUFFIX" \
-#   -onlysnap "$OUTDIR/IGV_snapshots.bat" \
-#   -r "$BEDFILE" \
-#   -ht $HT \
-#   -bin "${CURRENT_SCRIPT_DIR}/IGV_2.3.81/igv.jar" \
-#   -imgfmt "$FMT" \
-#   "$BAMFILE"
 
 echo "IGV run complete [$(date)]"
 
