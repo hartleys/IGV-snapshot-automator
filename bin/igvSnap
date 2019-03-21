@@ -8,24 +8,31 @@
 #+ SYNTAXTEXT="igvSnap [options] bamfile.bam"$'\n'
 #+ PARAMS="--help: displays syntax and help info."$'\n'
 #++PARAMS="--man: synonym for --help."$'\n'
-#++PARAMS="--region chr1:10000-20000: Explicitly list a region to plot. Note, the region can optionally be preceded with the region ID using the format: regionID:chr1:1000-2000"$'\n'
 #++PARAMS="--bedFile <filename.bed>: The bedfile to use, listing the desired regions. This can be combined with the --region parameter."$'\n'
+#++PARAMS="--region chr1:10000-20000: Explicitly list a region to plot. Note, the region can optionally be preceded with the region ID using the format: regionID:chr1:1000-2000. This parameter can be set more than once, in which case separate snapshots will be generated for each region."$'\n'
+#++PARAMS="--roi chr1:10000-20000: One or more regions of interest to mark on the track. If this is set more than once, then one region of interest will be assigned to each region parameter, in one to one order."$'\n'
+#++PARAMS="--viewAsPairs: view bam file reads using the viewaspairs mode."$'\n'
 #++PARAMS="--outDir <output/dir/>: The directory to put output images. Defaults to the current directory"$'\n'
 #++PARAMS="--outPrefix <fileSuffix>: A suffix to append to each output image filename."$'\n'
 #++PARAMS="--outSuffix <fileSuffix>: A suffix to append to each output image filename."$'\n'
-#++PARAMS="--bamFile <bamfile.bam>: Additional bam files to include."$'\n'
+#++PARAMS="--trackFile <trackFile.bam/bed/vcf/etc>: Additional track files to include."$'\n'
 #++PARAMS="--ht <ht>: The maxHeight param for IGV."$'\n'
 #++PARAMS="--wd <wd>: The width of the output image(s), in pixels. (default 1920)"$'\n'
+#++PARAMS="--resolutionFactor 1.0: The resolution multiplication factor. This can be used to increase the resolution without shrinking the elements. Roughly 4.17 is equivalent to 300dpi."$'\n'
+#++PARAMS="--onlySnap <batchfile.bat>: Instead of creating a new batch file and running it, just use the supplied headlessIGV batch file."$'\n'
+#++PARAMS="--noSnap: Instead of creating a new batch file and running it, just create the batch file and stop."$'\n'
+#++PARAMS="--additionalInitCommand: Add an additional IGV batch file command to the beginning of the batch file. This can be specified more than once."$'\n'
 #++PARAMS="--fmt png/svg/jpg: The image file format you want. Can be png, svg, or jpg. Default: png."$'\n'
 #++PARAMS="--python path/to/python: The path to the python executable you want to use. Defaults to just 'python'. This is useful if you have both python 2.7 and python 3+ installed."$'\n'
-
-
+#++PARAMS="--igvJar path/to/jarfile: The headlessIGV jarfile to use. It is strongly recommended to use the version that comes with this version of igvSnap, as different versions of igvSnap and headlessIGV may not be compatible. Also note that you can NOT use a standard IGV jarfile."$'\n'
 #+ VERSION="0.1.0"
 
 if [ "$1" == "--help" -o "$1" == "--man" ]; then
   ${SWH_HELPER_SCRIPTS}/manForScript ${BASH_SOURCE[0]}
   exit 1
 fi
+
+set -e
 
 CURRENT_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -48,8 +55,8 @@ OUTPREFIX="";
 ROI="";
 ROICMD="";
 VIEWASPAIRS="";
-
-
+RESFACTOR="1.0";
+additionalInitCommand="";
 
 while [ "$#" -gt 0 ];
 do
@@ -88,7 +95,7 @@ do
       fi
       if [ "$1" == "--region" ]; then
         shift;
-        REGIONS="$REGIONS $1";
+        REGIONS="$REGIONS --region $1";
       fi
       if [ "$1" == "--python" ]; then
         shift;
@@ -106,7 +113,7 @@ do
         OUTPREFIXCMD="--outPrefix $1"
       fi
 
-      if [ "$1" == "-b" -o "$1" == "--bamFile" ];
+      if [ "$1" == "--trackFile" ];
       then
         shift;
         BAMFILE="$BAMFILE $1";
@@ -118,6 +125,14 @@ do
       fi
       if [ "$1" == "--viewAsPairs" ]; then
         VIEWASPAIRS="--viewAsPairs";
+      fi
+      if [ "$1" == "--resolutionFactor" ]; then
+        shift;
+        RESFACTOR=$1
+      fi
+      if [ "$1" == "--additionalInitCommand" ]; then
+        shift;
+        additionalInitCommand="$additionalInitCommand --additionalInitCommand \"$1\""
       fi
       
       shift;
@@ -168,6 +183,8 @@ echo "    OUTPREFIXCMD=\"$OUTPREFIXCMD\""
 echo "    ROI=\"$ROI\""
 echo "    VIEWASPAIRS=\"$VIEWASPAIRS\""
 echo "    EXTRAOPTS=$EXTRAOPTS";
+echo "    additionalInitCommand=$additionalInitCommand";
+echo "    resolutionFactor=$resolutionFactor";
 
 
 if [ "$BAMFILE" == "youMustSetaBamfileWithTheBamParameter.bam" ]; then
@@ -203,15 +220,18 @@ CMD="${PYTHON} ${CURRENT_SCRIPT_DIR}/../make_IGV_snapshots.py \
    --outDir \"$OUTDIR\" \
    --suffix \"$SUFFIX\" \
    ${BEDFILECMD} \
-   --regions \"$REGIONS\" \
+   $REGIONS \
+   $ROICMD \
+   ${resolutionFactor} \
    --ht \"$HT\" \
    --wd \"$WD\" \
    --igvJar \"$IGVJAR\" \
    --imgFmt \"$FMT\" \
    --noSnap \
+   --resolutionFactor "$RESFACTOR" \
    $OUTPREFIXCMD \
-   $ROICMD \
    $VIEWASPAIRS \
+   $additionalInitCommand \
    $BAMFILE"
 
 if [ "$ONLYSNAP" == "0" ]; then

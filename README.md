@@ -1,71 +1,63 @@
 # IGV Snapshot Automator
-A script to automatically create and run [IGV snapshot batchscripts](http://software.broadinstitute.org/software/igv/batch). This script will first write an IGV batch script for the supplied input files, then load all supplied files for visualization (.bam, etc) in a headless IGV session and take snapshots at the locations defined in the `regions.bed` file. 
+
+This is a heavily modified fork of the [IGV Snapshot Automator](https://github.com/stevekm/IGV-snapshot-automator) 
+by [Stephen Kelly](https://github.com/stevekm/). 
+It comes packaged with a [special modified fork of IGV](https://github.com/hartleys/headlessIGV), 
+which provides a number of critical features that are 
+unavailable in standard IGV batch runs.
+
+In particular: it allows modification of the snapshot image size and resolution, making it possible to 
+create high-resolution, publication-quality IGV screenshots via an automated pipeline.
 
 Designed for use on Linux systems, and intended to be used as a component of sequencing analysis pipelines. 
 
 # Usage
 
-## Download IGV
+#### SYNTAX
+    igvSnap [options] bamfile.bam
 
-You can use the included script in the `bin` directory to download IGV:
+#### OPTIONS
+    --help: displays syntax and help info.
+    --man: synonym for --help.
+    --bedFile <filename.bed>: The bedfile to use, listing the desired regions. This can be combined with the --region parameter.
+    --region chr1:10000-20000: Explicitly list a region to plot. Note, the region can optionally be preceded with the region ID using the format: regionID:chr1:1000-2000. This parameter can be set more than once, in which case separate snapshots will be generated for each region.
+    --roi chr1:10000-20000: One or more regions of interest to mark on the track. If this is set more than once, then one region of interest will be assigned to each region parameter, in one to one order.
+    --viewAsPairs: view bam file reads using the viewaspairs mode.
+    --outDir <output/dir/>: The directory to put output images. Defaults to the current directory
+    --outPrefix <fileSuffix>: A suffix to append to each output image filename.
+    --outSuffix <fileSuffix>: A suffix to append to each output image filename.
+    --trackFile <trackFile.bam/bed/vcf/etc>: Additional track files to include.
+    --ht <ht>: The maxHeight param for IGV.
+    --wd <wd>: The width of the output image(s), in pixels. (default 1920)
+    --resolutionFactor 1.0: The resolution multiplication factor. This can be used to increase the resolution without shrinking the elements. Roughly 4.17 is equivalent to 300dpi.
+    --onlySnap <batchfile.bat>: Instead of creating a new batch file and running it, just use the supplied headlessIGV batch file.
+    --noSnap: Instead of creating a new batch file and running it, just create the batch file and stop.
+    --additionalInitCommand: Add an additional IGV batch file command to the beginning of the batch file. This can be specified more than once.
+    --fmt png/svg/jpg: The image file format you want. Can be png, svg, or jpg. Default: png.
+    --python path/to/python: The path to the python executable you want to use. Defaults to just 'python'. This is useful if you have both python 2.7 and python 3+ installed.
+    --igvJar path/to/jarfile: The headlessIGV jarfile to use. It is strongly recommended to use the version that comes with this version of igvSnap, as different versions of igvSnap and headlessIGV may not be compatible. Also note that you can NOT use a standard IGV jarfile.
 
-```bash
-$ cd bin
-$ ./get_IGV.sh
-```
-Alternatively, a copy of IGV has been saved in the `bin` branch of this repo:
-
-```bash
-$ git checkout origin/bin bin/IGV_2.3.81.zip && unzip bin/IGV_2.3.81.zip -d bin
-```
-
-## Run Snapshotter
-
-- Put your chromosome regions to visualize in the `regions.bed` file (provided), or another BED format file
-
-- Locate your files to visualize (e.g. .bam & .bam.bai files)
-
-- Create and run batchscript. Example command:
-```bash
-$ python make_IGV_snapshots.py /path/to/alignments1.bam /path/to/alignments2.bam
-```
 
 ## Demo
 
 To run the script on the included demo files:
 
 ```bash
-$ python make_IGV_snapshots.py test_data/test_alignments.bam test_data/test_alignments2.bam
+$ igvSnap \
+          --resolutionFactor "1" \
+          --wd "1000" \
+          --region "chr1:714000-714400" \
+          --roi "chr1:714067-714070" \
+          --fmt png \
+          --viewAsPairs \
+          --outDir "./testResults" \
+          --outPrefix "testrun.72dpi." \
+          "testdata/test_alignments.bam"
 ```
-
-# Options
-
-See `python make_IGV_snapshots.py --help` for available options. Here are a few:
-
-- `-r`: Path to the BED formatted regions file to use:
-```bash
-$ python make_IGV_snapshots.py /path/to/alignments1.bam /path/to/alignments2.bam -r /path/to/my_peaks.bed
-```
-
-- `-nosnap`: Make batchscript without taking snapshots:
-```bash
-$ python make_IGV_snapshots.py /path/to/alignments1.bam /path/to/alignments2.bam -nosnap
-```
-- `-g`: Genome to use, e.g. `hg19`
-- `-ht`: Height of the snapshot, default is 500
-- `-o`: Name of the output directory to save the snapshots in.
-- `-bin`: Path to the IGV jar binary to run 
-- `-mem`: Memory to allocate to IGV (MB)
-- `-suffix`: Filename suffix to place before '.png' in the snapshots
-- `-onlysnap`: Skip batchscript creation and only run IGV using the supplied batchscript file
-- `-nf4`: "Name field 4" mode, uses values saved in 4th field of the `regions.bed` file as the output filename of the PNG snapshot. Use this when you have pre-made filenames you wish to use for each snapshot. 
-- `-s` or `-group_by_strand`: Group alignment(s) by read strand with forward on top and reverse on the bottom.
-
-
 
 # Example Output
 
-![chr1_713500_714900_h500](https://cloud.githubusercontent.com/assets/10505524/23584731/4cf127b4-0138-11e7-838c-a947980c8520.png)
+TODO!
 
 # Notes
 
@@ -76,7 +68,6 @@ IGV may take several minutes to run, depending on the number of input files and 
 # Software Requirements
 - Python 2.7 or 3+
 - bash version 4.1.2+
-- IGV (download script provided in `bin` directory)
 - Xvfb
 - xdpyinfo
 - Java runtime environment

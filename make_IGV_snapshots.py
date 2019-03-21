@@ -201,7 +201,7 @@ def verify_input_files_list(files_list):
         if file.endswith(".bam"):
             check_for_bai(file)
 
-def start_batchscript(input_files, IGV_batchscript_file, IGV_snapshot_dir, genome_version, image_height, wd = "1920"):
+def start_batchscript(input_files, IGV_batchscript_file, IGV_snapshot_dir, genome_version, image_height, wd = "1920", resolutionFactor = "1.0",additionalInitCommand=[]):
     '''
     Initialize the batchscript file and write setup information to it
     '''
@@ -213,9 +213,14 @@ def start_batchscript(input_files, IGV_batchscript_file, IGV_snapshot_dir, genom
     append_string("genome " + genome_version, IGV_batchscript_file)
     # add the snapshot dir
     append_string("snapshotDirectory " + IGV_snapshot_dir, IGV_batchscript_file)
+    append_string("resolutionFactor "+resolutionFactor, IGV_batchscript_file);
     # add all of the input files to load as tracks
     for file in input_files:
         append_string("load " + file, IGV_batchscript_file)
+    if additionalInitCommand:
+       for aic in additionalInitCommand:
+           append_string(aic, IGV_batchscript_file);
+    
     # add the track height
     append_string("maxPanelHeight " + image_height, IGV_batchscript_file)
     append_string("panelWidth " + wd, IGV_batchscript_file)
@@ -286,11 +291,12 @@ def write_batchscript_regions(region_file, IGV_batchscript_file, image_height, s
 
 def write_IGV_script(input_files, region_file, IGV_batchscript_file, IGV_snapshot_dir, genome_version, 
                      image_height, suffix = None, nf4_mode = False, group_by_strand=False, imgfmt="png",
-                     regions = [],outPrefix=None,roi=[],viewaspairs=False,wd="1920"):
+                     regions = [],outPrefix=None,roi=[],viewaspairs=False,wd="1920",resolutionFactor="1.0",
+                     additionalInitCommand=[]):
     '''
     write out a batchscrpt for IGV
     '''
-    start_batchscript(input_files, IGV_batchscript_file, IGV_snapshot_dir, genome_version, image_height, wd =wd)
+    start_batchscript(input_files, IGV_batchscript_file, IGV_snapshot_dir, genome_version, image_height, wd =wd,resolutionFactor=resolutionFactor,additionalInitCommand=additionalInitCommand)
     print("write_IGV_script: region_file=\""+str(region_file)+"\"");
     write_batchscript_regions(region_file, IGV_batchscript_file, image_height, suffix, 
                               nf4_mode, group_by_strand=group_by_strand,imgfmt=imgfmt,
@@ -329,7 +335,9 @@ def main(input_files, region_file = 'regions.bed', genome = 'hg19',
          igv_jar_bin = "bin/IGV_2.3.81/igv.jar", igv_mem = "4000",
          no_snap = False, suffix = None, nf4_mode = False, onlysnap = False,
          group_by_strand=False,
-         imgfmt = "png", regions = None,outPrefix=None,roi=None,viewaspairs=False,wd="1920"):
+         imgfmt = "png", regions = None,outPrefix=None,roi=None,viewaspairs=False,wd="1920",
+         resolutionFactor="1.0",
+         additionalInitCommand = []):
     '''
     Main control function for the script
     '''
@@ -385,7 +393,9 @@ def main(input_files, region_file = 'regions.bed', genome = 'hg19',
                      IGV_snapshot_dir = outdir, genome_version = genome,
                      image_height = image_height, suffix = suffix,
                      nf4_mode = nf4_mode, group_by_strand=group_by_strand, 
-                     imgfmt=imgfmt, regions=regions,outPrefix=outPrefix,roi=roi,viewaspairs=viewaspairs,wd=wd)
+                     imgfmt=imgfmt, regions=regions,outPrefix=outPrefix,roi=roi,viewaspairs=viewaspairs,wd=wd,
+                     resolutionFactor=resolutionFactor,
+                     additionalInitCommand=additionalInitCommand)
 
     # make sure the batch script file exists
     file_exists(batchscript_file, kill = True)
@@ -424,10 +434,13 @@ def run():
 
     parser.add_argument("--regions",  action='append', type = str, dest = 'regions', help="Explicitly defined regions to be plotted.")
     parser.add_argument("--roi",      action='append', type = str, dest = 'roi', help="...")
+    parser.add_argument("--additionalInitCommand",      action='append', type = str, dest = 'additionalInitCommand', help="...")
 
     parser.add_argument("--outPrefix", default = "", type = str, dest = 'outPrefix', help="Prefix string for all output data...")
     parser.add_argument("--wd", default = "1920", type = str, dest = 'wd', help="...")
     parser.add_argument("--viewAsPairs", default = False, action='store_true', dest = 'viewaspairs', help="...")
+    parser.add_argument("--resolutionFactor", default = '1.0', type = str, dest = 'resolutionFactor', metavar = 'resolution expansion factor', help="Resolution expansion factor for snapshot images. Higher values will produce higher resolution images without shrinking the elements.")
+
     #viewaspairs
 
     parser.add_argument("--groupByStrand", default=False,
@@ -454,6 +467,8 @@ def run():
     roi = args.roi
     viewaspairs = args.viewaspairs
     wd = args.wd
+    resolutionFactor=args.resolutionFactor
+    additionalInitCommand=args.additionalInitCommand
     
     print("genome: "+str(genome));
     print("viewaspairs: "+str(viewaspairs));
@@ -463,7 +478,8 @@ def run():
          igv_mem = igv_mem, no_snap = no_snap, suffix = suffix,
          nf4_mode = nf4_mode, onlysnap = onlysnap,
          group_by_strand=group_by_strand,
-         imgfmt=imgfmt, regions = regions,outPrefix=outPrefix,roi=roi,viewaspairs=viewaspairs,wd=wd)
+         imgfmt=imgfmt, regions = regions,outPrefix=outPrefix,roi=roi,viewaspairs=viewaspairs,wd=wd,resolutionFactor=resolutionFactor,
+         additionalInitCommand=additionalInitCommand)
 
 
 
