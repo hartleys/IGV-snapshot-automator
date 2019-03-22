@@ -1,20 +1,10 @@
 reading param: --markdown
 ## NAME
-    igvSnap - Simple wrapper for IGV-snapshot-automator tool (vv0.1.477)
+    igvSnap - Simple wrapper for IGV-snapshot-automator tool (v0.1.0)
 
 ## DESCRIPTION
->  This tool is a heavily modified version of the   
->  IGV-Snapshot-Automator by Stephen Kelly.  
->  It is intended to allow users to create publication-quality IGV   
->  screenshots in an automated fashion.  
->  While the general capability to create automated screenshots in IGV   
->  is provided by the IGV batch mode, standard IGV cannot increase the   
->  size or resolution of the images, and the output is extremely small   
->  (640 pixels wide)  
->  This tool allows users to increase the resolution and/or the   
->  dimensions of the output images.  
->  It also provides a simple wrapper that streamlines the automation   
->  process.  
+>  ...  
+>  ...  
 >    
 ## SYNTAX
     igvSnap [options] bamfile.bam  
