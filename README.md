@@ -99,6 +99,21 @@ $ igvSnap \
           "testdata/test_alignments.bam"
 ```
 
+To generate a high-resolution, publication-quality png (roughly equivalent to 600dpi):
+
+```bash
+$ igvSnap \
+          --resolutionFactor "8.3" \
+          --wd "1000" \
+          --region "chr1:714000-714400" \
+          --roi "chr1:714067-714070" \
+          --fmt png \
+          --viewAsPairs \
+          --outDir "./testResults" \
+          --outPrefix "testrun.600dpi." \
+          "testdata/test_alignments.bam"
+```
+
 # Example Output
 
 TODO!
