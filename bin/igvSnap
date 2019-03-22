@@ -3,8 +3,12 @@
 #estat | tail -n+2 | awk '{ if ( $5 == "qw" ) print $1 }' | tr '\n' '|'
 
 #+SHORTDESC="Simple wrapper for IGV-snapshot-automator tool"
-#+ HELPTEXT="..."$'\n'
-#++HELPTEXT="..."$'\n'
+#+ HELPTEXT="This tool is a heavily modified version of the IGV-Snapshot-Automator by Stephen Kelly."$'\n'
+#++HELPTEXT="It is intended to allow users to create publication-quality IGV screenshots in an automated fashion."$'\n'
+#++HELPTEXT="While the general capability to create automated screenshots in IGV is provided by the IGV batch mode, "
+#++HELPTEXT="standard IGV cannot increase the size or resolution of the images, and the output is extremely small (640 pixels wide)"$'\n'
+#++HELPTEXT="This tool allows users to increase the resolution and/or the dimensions of the output images."$'\n'
+#++HELPTEXT="It also provides a simple wrapper that streamlines the automation process."$'\n'
 #+ SYNTAXTEXT="igvSnap [options] bamfile.bam"$'\n'
 #+ PARAMS="--help: displays syntax and help info."$'\n'
 #++PARAMS="--man: synonym for --help."$'\n'
@@ -25,16 +29,18 @@
 #++PARAMS="--fmt png/svg/jpg: The image file format you want. Can be png, svg, or jpg. Default: png."$'\n'
 #++PARAMS="--python path/to/python: The path to the python executable you want to use. Defaults to just 'python'. This is useful if you have both python 2.7 and python 3+ installed."$'\n'
 #++PARAMS="--igvJar path/to/jarfile: The headlessIGV jarfile to use. It is strongly recommended to use the version that comes with this version of igvSnap, as different versions of igvSnap and headlessIGV may not be compatible. Also note that you can NOT use a standard IGV jarfile."$'\n'
-#+ VERSION="0.1.0"
+#+ VERSION=v0.1.477
+
+CURRENT_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ "$1" == "--help" -o "$1" == "--man" ]; then
-  ${SWH_HELPER_SCRIPTS}/manForScript ${BASH_SOURCE[0]}
+  shift;
+  ${CURRENT_SCRIPT_DIR}/manForScript ${BASH_SOURCE[0]} "$@"
   exit 1
 fi
 
 set -e
 
-CURRENT_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 for last; do true; done
 echo "BAMFILE=$last"

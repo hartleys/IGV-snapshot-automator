@@ -1,0 +1,56 @@
+#!/bin/bash
+
+#echo "starting help:"
+
+SCRIPT=$1;
+shift;
+
+MARKDOWN="0"
+COLWD=68
+
+while [ "$#" -gt "0" ]
+do
+  echo "reading param: $1";
+  if [ "$1" == "-m" -o "$1" == "--markdown" ]; then
+    #echo "MARKDOWN=1";
+    MARKDOWN="1";   
+  fi
+  if [ "$1" == "-w" -o "$1" == "--charWidth" ]; then
+    shift;
+    #echo "COLWD=$1";
+    COLWD="$1";   
+  fi
+  shift;
+done
+
+
+
+
+
+
+if [ "$MARKDOWN" == "0" ];
+then
+  source <( cat $SCRIPT | grep "^#[+]" | sed -e 's/^#[+]//' | sed -r 's/[+]([A-Za-z_]+)="/\1="${\1}/'   );
+  echo "NAME"
+  echo "    $(basename $SCRIPT) - $SHORTDESC (v$VERSION)";
+  echo ""
+  echo "DESCRIPTION"
+  echo "$HELPTEXT" | fold -s -w${COLWD} | sed -e 's/^/      /' | tail -c+4
+  echo "SYNTAX"
+  echo "$SYNTAXTEXT" | fold -s  -w${COLWD} | sed -e 's/^/      /' | tail -c+4
+  echo "OPTIONS"
+  echo "$PARAMS" | fold -s -w${COLWD} | sed -e 's/^/        /' | sed -e 's/^        --/  --/'
+else
+  source <( cat $SCRIPT | grep "^#[+]" | sed -e 's/^#[+]//' | sed -r 's/[+]([A-Za-z_]+)="/\1="${\1}/'   );
+  echo "## NAME"
+  echo "    $(basename $SCRIPT) - $SHORTDESC (v$VERSION)";
+  echo ""
+  echo "## DESCRIPTION"
+  echo "$HELPTEXT" | fold -s -w${COLWD} | sed -e 's/^/>  /'  | sed -e 's/$/  /'
+  echo "## SYNTAX"
+  echo "$SYNTAXTEXT" | fold -s -w${COLWD} | sed -e 's/^/    /'  | sed -e 's/$/  /'
+  echo "## OPTIONS"
+  ##echo "$PARAMS" | fold -s -w${COLWD} | sed -e 's/^/          /' | sed -e 's/^          --/    --/' | sed 's/$/  /g' | sed 's/\(--[A-Za-z0-9_<> .,|/]\+[:]\) /**\1** /g'
+  echo "$PARAMS" | fold -s -w${COLWD} | sed -e 's/^/          /' | sed -e 's/^          --/    --/' | sed 's/$/  /g'
+
+fi
