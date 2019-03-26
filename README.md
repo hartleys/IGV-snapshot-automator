@@ -11,7 +11,56 @@ create high-resolution, publication-quality IGV screenshots via an automated pip
 
 Designed for use on Linux systems, and intended to be used as a component of sequencing analysis pipelines. 
 
+If you encounter bugs or problems, let me know by 
+[creating an issue on the github repository](https://github.com/hartleys/igvSnap/issues).
+
+# Installation:
+
+igvSnap is portable and runs on any linux-based system. Simply clone the github repository with the command:
+
+```bash
+git clone https://github.com/hartleys/igvSnap
+```
+
+Or you can download the repository and unzip it to the desired location:
+
+```bash
+wget https://github.com/hartleys/igvSnap/archive/master.zip
+unzip master.zip
+```
+
+Either way, you should then add the "bin" directory to your path:
+
+```bash
+export PATH=$PATH:/my/directory/containing/igvSnap/bin
+```
+
+And you're all set! You can access the basic syntax and help using the command:
+
+```bash
+igvSnap --help
+```
+
+## Software Requirements
+
+- Python 3+
+- bash version 4.1.2+
+- Xvfb
+- xdpyinfo
+- Java runtime environment
+
+If you have trouble getting any of these dependencies, PLEASE let me know by 
+[creating an issue on the github repository](https://github.com/hartleys/igvSnap/issues). 
+Some of these dependencies can be stripped out, but it would be a lot of work so I don't want to 
+do it unless it's really necessary.
+
 # Usage
+
+This usage manual can be accessed (in plaintext form) using the command:
+
+```bash
+igvSnap --help
+```
 
 ## NAME
     igvSnap - Simple wrapper for IGV-snapshot-automator tool (vv0.1.477)
@@ -79,10 +128,8 @@ Designed for use on Linux systems, and intended to be used as a component of seq
           version of igvSnap, as different versions of igvSnap and   
           headlessIGV may not be compatible. Also note that you can NOT use a   
           standard IGV jarfile.  
-            
 
-
-## Demo
+# Demo
 
 To run the script on the included demo files:
 
@@ -128,11 +175,6 @@ Simple IGV batch snapshot, without the extra capabilities offered by igvSnap:
 
 Default memory allotment is set at 4GB; this can be changed with the `-mem` argument (e.g. `-mem 1000` sets memory to 1GB). 
 
-IGV may take several minutes to run, depending on the number of input files and regions to snapshot. Stdout messages from the program may not appear immediately in the console. 
+IGV may take several minutes to run, depending on the number of input files and regions to snapshot. Unlike with the base IGV-snapshot-automator tool from Stephen Kelly, 
+stdout output from IGV should appear while IGV runs.
 
-# Software Requirements
-- Python 2.7 or 3+
-- bash version 4.1.2+
-- Xvfb
-- xdpyinfo
-- Java runtime environment

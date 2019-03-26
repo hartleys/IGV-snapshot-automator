@@ -29,7 +29,7 @@
 #++PARAMS="--fmt png/svg/jpg: The image file format you want. Can be png, svg, or jpg. Default: png."$'\n'
 #++PARAMS="--python path/to/python: The path to the python executable you want to use. Defaults to just 'python'. This is useful if you have both python 2.7 and python 3+ installed."$'\n'
 #++PARAMS="--igvJar path/to/jarfile: The headlessIGV jarfile to use. It is strongly recommended to use the version that comes with this version of igvSnap, as different versions of igvSnap and headlessIGV may not be compatible. Also note that you can NOT use a standard IGV jarfile."$'\n'
-#+ VERSION=v0.1.4877
+#+ VERSION=v0.1.49877
 
 CURRENT_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
