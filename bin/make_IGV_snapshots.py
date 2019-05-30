@@ -317,7 +317,7 @@ def run_IGV_script(igv_script, igv_jar, memMB):
     
     # build the system command to run IGV
     # igv_command = "(Xvfb :{} &) && DISPLAY=:{} java -Xmx{}m -jar {} -b {} && killall Xvfb".format(x_serv_port, x_serv_port, memMB, igv_jar, igv_script)
-    igv_command = "xvfb-run --auto-servernum --server-num=1 java -Xmx{}m -jar {} -b {}".format(memMB, igv_jar, igv_script)
+    igv_command = "xvfb-run --auto-servernum java -Xmx{}m -jar {} -b {}".format(memMB, igv_jar, igv_script)
     print('\nIGV command is:\n{}\n'.format(igv_command))
     # get current time; command can take a while to finish
     startTime = datetime.datetime.now()
@@ -364,7 +364,7 @@ def main(input_files, region_file = 'regions.bed', genome = 'hg19',
     
     print('\n~~~ IGV SNAPSHOT AUTOMATOR ~~~\n')
     print("genome: "+str(genome));
-    print('Reference genome:\n{}\n'.format(genome))
+    print('Reference genome:{}\n'.format(genome))
     print("test?")
     print('Track height:\n{}\n'.format(image_height))
     print('IGV binary file:\n{}\n'.format(igv_jar_bin))
